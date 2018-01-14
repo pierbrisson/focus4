@@ -1,40 +1,10 @@
 import {InputProps} from "react-toolbox/lib/input";
 
-import {DisplayProps} from "../components";
-import {ReactComponent} from "../config";
+import {DisplayProps} from "../../components";
+import {ReactComponent} from "../../config";
 
+import {BaseDisplayProps, BaseInputProps, BaseLabelProps} from "./props";
 import {Validator} from "./validation";
-
-/** Props de base pour un composant d'affichage. */
-export interface BaseDisplayProps {
-    formatter?: (x: any) => string;
-    keyResolver?: (x: any) => Promise<string>;
-    labelKey?: string;
-    name?: string;
-    onChange?: Function;
-    theme?: {};
-    value?: any;
-    valueKey?: string;
-    values?: any[];
-}
-
-/** Props de base pour un composant d'input. */
-export interface BaseInputProps {
-    error?: React.ReactNode;
-    labelKey?: string;
-    name?: string;
-    onChange?: Function;
-    theme?: {};
-    value?: any;
-    valueKey?: string;
-    values?: any[];
-}
-
-/** Props de base pour un composant de libellé. */
-export interface BaseLabelProps {
-    name?: string;
-    text?: string;
-}
 
 /** Définition de base d'un domaine, sans valeurs par défaut (sinon ça pose problème avec les EntityField). */
 export interface DomainNoDefault<ICProps = {}, DCProps = {}, LCProps = {}> {
@@ -123,6 +93,9 @@ export interface EntityField<T = StoreType, D extends DomainNoDefault = {}> {
 
     /** Métadonnées. */
     readonly $field: FieldEntry<D["inputProps"], D["displayProps"], D["labelProps"]>;
+
+    /** Erreur de validation du champ, dans un FormNode. */
+    readonly error?: string | undefined;
 
     /** Valeur. */
     value: T | undefined;
