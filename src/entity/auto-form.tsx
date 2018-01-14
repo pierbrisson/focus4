@@ -11,10 +11,10 @@ import {ReactComponent} from "../config";
 import {messageStore} from "../message";
 import {classAutorun} from "../util";
 
-import {Field, FieldOptions, FieldProps, ReferenceOptions, RefValues} from "./field";
+import {Field, FieldOptions, ReferenceOptions, RefValues} from "./field";
 import {FormNode} from "./form-node";
-import {StoreNode, toFlatValues} from "./store";
-import {BaseDisplayProps, BaseInputProps, BaseLabelProps, Domain, EntityField} from "./types";
+import {toFlatValues} from "./store";
+import {BaseDisplayProps, BaseInputProps, BaseLabelProps, Domain, EntityField, StoreNode} from "./types";
 
 import {displayFor, fieldFor, selectFor, stringFor} from "./field-helpers";
 
@@ -358,7 +358,7 @@ export abstract class AutoForm<P = {}> extends React.Component<P, void> {
      * @param field La définition du champ.
      * @param options Les options du champ.
      */
-    private setFieldOptions<T>(field: EntityField<T>, options: Partial<FieldProps<T, {}, {}, {}, {}, string, string>>) {
+    private setFieldOptions<T>(field: EntityField<T>, options: Partial<FieldOptions<T, {}, {}, {}, {}, string, string>>) {
         if (options.isEdit === undefined) {
             options.isEdit = this.isEdit;
         }
