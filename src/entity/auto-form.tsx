@@ -1,5 +1,4 @@
 import {autobind} from "core-decorators";
-import {some, values as _values} from "lodash";
 import {action, computed, Lambda, observable, ObservableMap, reaction, runInAction} from "mobx";
 import * as PropTypes from "prop-types";
 import * as React from "react";
@@ -11,7 +10,7 @@ import {ReactComponent} from "../config";
 import {messageStore} from "../message";
 import {classAutorun} from "../util";
 
-import {Field, FieldOptions, ReferenceOptions, RefValues} from "./field";
+import {FieldOptions, ReferenceOptions, RefValues} from "./field";
 import {FormNode} from "./form-node";
 import {toFlatValues} from "./store";
 import {BaseDisplayProps, BaseInputProps, BaseLabelProps, Domain, EntityField, StoreNode} from "./types";
@@ -78,12 +77,6 @@ export abstract class AutoForm<P = {}> extends React.Component<P, void> {
 
     /** Services. */
     services: ServiceConfig;
-
-    /** Erreurs sur les champs issues du serveur. */
-    @observable errors: Record<string, string> = {};
-
-    /** Reférences vers les champs placés par `this.fieldFor` (pour la validation). */
-    @observable fields: Record<string, Field<any, any, any, any, any, any, any> | null> = {};
 
     /** Formulaire en édition. */
     @observable isEdit: boolean;
@@ -196,7 +189,7 @@ export abstract class AutoForm<P = {}> extends React.Component<P, void> {
     @action
     async save() {
         // On ne sauvegarde que si la validation est en succès.
-        if (this.validate()) {
+        if (!this.entity.form || this.entity.form.isValid) {
             this.isLoading = true;
             try {
                 const data = await this.services.save(toFlatValues(this.entity));
@@ -207,12 +200,7 @@ export abstract class AutoForm<P = {}> extends React.Component<P, void> {
                 });
                 this.onFormSaved();
             } catch (e) {
-                runInAction(() => {
-                    this.isLoading = false;
-                    if (e.$parsedErrors && e.$parsedErrors.fields) {
-                        this.errors = e.$parsedErrors.fields || {};
-                    }
-                });
+                this.isLoading = false;
             }
         }
     }
@@ -230,24 +218,6 @@ export abstract class AutoForm<P = {}> extends React.Component<P, void> {
     /** Est appelé après la sauvegarde. */
     onFormSaved() {
         messageStore.addSuccessMessage(`${this.i18nPrefix}.detail.saved`);
-    }
-
-    /**
-     * Valide les différents champs du formulaire.
-     *
-     * Surcharger la méthode pour ajouter une validation personnalisée.
-     */
-    @action
-    validate() {
-        // On force en premier lieu l'affichage des erreurs sur tous les champs.
-        for (const field in this.fields) {
-            if (this.fields[field]) {
-                this.fields[field]!.showError = true;
-            }
-        }
-
-        // La validation est en succès si chaque champ n'est pas en erreur.
-        return !some(_values(this.fields), field => field && field.error);
     }
 
     /** Récupère les props à fournir à un Panel pour relier ses boutons au formulaire. */
@@ -309,7 +279,7 @@ export abstract class AutoForm<P = {}> extends React.Component<P, void> {
         field: EntityField<T, Domain<ICProps, DCProps, LCProps>>,
         options: Partial<FieldOptions<T, ICProps, DCProps, LCProps, {}, string, string>> = {}
     ) {
-        return fieldFor(field, this.setFieldOptions(field, options));
+        return fieldFor(field, this.setFieldOptions(options));
     }
 
     /**
@@ -333,7 +303,7 @@ export abstract class AutoForm<P = {}> extends React.Component<P, void> {
             SelectComponent?: ReactComponent<ICProps>
         } = {}
     ) {
-        return selectFor(field, values, this.setFieldOptions(field, options));
+        return selectFor(field, values, this.setFieldOptions(options));
     }
 
     /**
@@ -358,16 +328,10 @@ export abstract class AutoForm<P = {}> extends React.Component<P, void> {
      * @param field La définition du champ.
      * @param options Les options du champ.
      */
-    private setFieldOptions<T>(field: EntityField<T>, options: Partial<FieldOptions<T, {}, {}, {}, {}, string, string>>) {
+    private setFieldOptions<T>(options: Partial<FieldOptions<T, {}, {}, {}, {}, string, string>>) {
         if (options.isEdit === undefined) {
             options.isEdit = this.isEdit;
         }
-
-        options.innerRef = f => this.fields[field.$field.label] = f;
-        if (!options.error) {
-            options.error = this.errors[field.$field.label];
-        }
-
         return options;
     }
 }
