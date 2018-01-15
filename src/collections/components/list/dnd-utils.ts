@@ -16,7 +16,7 @@ export function addDragSource<T>(type: string, Component: React.ComponentClass<L
             if (store) {
                 // Si l'élément en cours de drag est sélectionné, alors on embarque tous les éléments sélectionnés.
                 if (store.selectedItems.has(data)) {
-                    store.selectedItems.forEach(action((item: T) => draggedItems!.push(item)));
+                    store.selectedItems.forEach(action("selectDraggedItems", (item: T) => draggedItems!.push(item)));
                 } else {
                     // Sinon, simplement l'élément en cours.
                     draggedItems!.push(data);

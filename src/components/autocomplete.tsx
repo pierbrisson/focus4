@@ -97,7 +97,7 @@ export class Autocomplete extends React.Component<AutocompleteProps, void> {
         if (query && query.trim().length) {
             this.isLoading = true;
             const result = await this.props.querySearcher(query.trim());
-            runInAction(() => {
+            runInAction("replaceResults", () => {
                 this.values.replace(result && result.data && result.data.reduce((acc, next) => ({...acc, [next.key]: next.label}), {}) || {});
                 this.isLoading = false;
             });
