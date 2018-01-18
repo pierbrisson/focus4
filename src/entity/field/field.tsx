@@ -8,10 +8,10 @@ import {themeable, themr} from "react-css-themr";
 import {findDOMNode} from "react-dom";
 import {Input} from "react-toolbox/lib/input";
 
-import {Display} from "../components";
+import {Display} from "../../components";
 
+import {BaseDisplayProps, BaseInputProps, BaseLabelProps, Domain, EntityField} from "../types";
 import {documentHelper} from "./document-helper";
-import {BaseDisplayProps, BaseInputProps, BaseLabelProps, Domain, EntityField} from "./types";
 
 import * as styles from "./__style__/field.css";
 
@@ -54,8 +54,6 @@ export interface FieldOptions<
     hasLabel?: boolean;
     /** A utiliser à la place de `ref`. */
     innerRef?: (i: Field<T, ICProps, DCProps, LCProps, R, ValueKey, LabelKey>) => void;
-    /** Champ en édition. */
-    isEdit?: boolean;
     /** Par défaut : "top". */
     labelCellPosition?: string;
     /** Largeur en % du label. Par défaut : 33. */
@@ -90,7 +88,7 @@ export class Field<
     private valueElement?: Element;
     /** Masque l'erreur à l'initilisation du Field si on est en mode edit et que le valeur est vide (= cas standard de création). */
     @observable
-    private hideErrorOnInit = this.props.isEdit && !this.props.field.value;
+    private hideErrorOnInit = this.props.field.isEdit && !this.props.field.value;
 
     /** Détermine si on affiche l'erreur ou pas. En plus des surcharges du form et du field lui-même, l'erreur est masquée si le champ est en cours de saisie. */
     @computed
@@ -172,9 +170,9 @@ export class Field<
     }
 
     render() {
-        const {disableInlineSizing, hasLabel = true, labelRatio = 33, field, isEdit, theme} = this.props;
+        const {disableInlineSizing, hasLabel = true, labelRatio = 33, field, theme} = this.props;
         const {valueRatio = 100 - (hasLabel ? labelRatio : 0)} = this.props;
-        const {error, $field: {isRequired, domain: {className = ""}}} = field;
+        const {isEdit, error, $field: {isRequired, domain: {className = ""}}} = field;
         return (
             <div className={`${theme!.field} ${isEdit ? theme!.edit : ""} ${isEdit && error && this.showError ? theme!.invalid : ""} ${isRequired ? theme!.required : ""} ${className}`}>
                 {hasLabel ?

@@ -2,20 +2,14 @@ import {autobind} from "core-decorators";
 import {action, computed, Lambda, observable, ObservableMap, reaction, runInAction} from "mobx";
 import * as PropTypes from "prop-types";
 import * as React from "react";
-import {InputProps} from "react-toolbox/lib/input";
 import {v4} from "uuid";
 
-import {DisplayProps, PanelProps, SelectProps} from "../components";
-import {ReactComponent} from "../config";
+import {PanelProps} from "../components";
 import {messageStore} from "../message";
 import {classAutorun} from "../util";
 
-import {FieldOptions, ReferenceOptions, RefValues} from "./field";
-import {FormNode} from "./form-node";
 import {toFlatValues} from "./store";
-import {BaseDisplayProps, BaseInputProps, BaseLabelProps, Domain, EntityField, StoreNode} from "./types";
-
-import {displayFor, fieldFor, selectFor, stringFor} from "./field-helpers";
+import {FormNode, StoreNode} from "./types";
 
 import {form} from "./__style__/auto-form.css";
 
@@ -30,16 +24,10 @@ export interface AutoFormOptions {
 
     /** Préfixe i18n pour les messages du formulaire (par défaut: "focus") */
     i18nPrefix?: string;
-
-    /** Par défaut: false */
-    initiallyEditing?: boolean;
 }
 
 /** Config de services à fournir à AutoForm. */
 export interface ServiceConfig {
-
-    /** Service de suppression. */
-    delete?: (entity: {}) => Promise<void | number | boolean>;
 
     /** Fonction pour récupérer la liste des paramètres pour le service de chargement. Si le résultat contient des observables, le service de chargement sera rappelé à chaque modification. */
     getLoadParams?: () => any[] | undefined;
@@ -85,9 +73,6 @@ export abstract class AutoForm<P = {}> extends React.Component<P, void> {
     /** Services. */
     services: ServiceConfig;
 
-    /** Formulaire en édition. */
-    @observable isEdit: boolean;
-
     /** Formulaire en chargement. */
     @observable isLoading = false;
 
@@ -116,9 +101,8 @@ export abstract class AutoForm<P = {}> extends React.Component<P, void> {
      * @param services La config de services pour le formulaire ({delete?, getLoadParams, load, save}).
      * @param options Options additionnelles.
      */
-    formInit(services: ServiceConfig, {className, hasForm, i18nPrefix, initiallyEditing}: AutoFormOptions = {}) {
+    formInit(services: ServiceConfig, {className, hasForm, i18nPrefix}: AutoFormOptions = {}) {
         this.services = services;
-        this.isEdit = initiallyEditing || false;
         this.hasForm = hasForm !== undefined ? hasForm : true;
         this.className = className || "";
         this.i18nPrefix = i18nPrefix || "focus";
@@ -131,7 +115,7 @@ export abstract class AutoForm<P = {}> extends React.Component<P, void> {
 
     componentWillMount() {
         this.init();
-        AutoForm.editingMap.set(this.formId, this.isEdit);
+        AutoForm.editingMap.set(this.formId, this.entity.form.isEdit);
         this.entity.subscribe();
         this.load();
     }
@@ -147,28 +131,14 @@ export abstract class AutoForm<P = {}> extends React.Component<P, void> {
     /** Change le mode du formulaire. */
     @action
     toggleEdit(isEdit: boolean) {
-        this.isEdit = isEdit;
+        this.entity.form.isEdit = isEdit;
         if (!isEdit) {
             this.entity.reset();
         }
     }
 
     @classAutorun protected updateApplicationStore() {
-        AutoForm.editingMap.set(this.formId, this.isEdit);
-    }
-
-    /** Appelle le service de suppression. */
-    @action
-    async delete() {
-        if (this.services.delete) {
-            this.isLoading = true;
-            await this.services.delete(toFlatValues(this.entity));
-            runInAction("afterDelete", () => {
-                this.isLoading = false;
-                this.entity.sourceNode.clear();
-            });
-            this.onFormDeleted();
-        }
+        AutoForm.editingMap.set(this.formId, this.entity.form.isEdit);
     }
 
     /** Appelle le service de chargement (appelé par la réaction de chargement). */
@@ -205,7 +175,7 @@ export abstract class AutoForm<P = {}> extends React.Component<P, void> {
                 const data = await this.services.save(toFlatValues(this.entity));
                 runInAction("afterSave", () => {
                     this.isLoading = false;
-                    this.isEdit = false;
+                    this.entity.form.isEdit = false;
                     this.entity.sourceNode.set(data); // En sauvegardant le retour du serveur dans le noeud de store, l'état du formulaire va se réinitialiser.
                 });
                 this.onFormSaved();
@@ -213,11 +183,6 @@ export abstract class AutoForm<P = {}> extends React.Component<P, void> {
                 this.isLoading = false;
             }
         }
-    }
-
-    /** Est appelé après la suppression. */
-    onFormDeleted() {
-        messageStore.addSuccessMessage(`${this.i18nPrefix}.detail.deleted`);
     }
 
     /** Est appelé après le chargement. */
@@ -233,7 +198,7 @@ export abstract class AutoForm<P = {}> extends React.Component<P, void> {
     /** Récupère les props à fournir à un Panel pour relier ses boutons au formulaire. */
     getPanelProps(): PanelProps {
         return {
-            editing: this.isEdit,
+            editing: this.entity.form.isEdit,
             loading: this.isLoading,
             save: this.save,
             toggleEdit: this.toggleEdit,
@@ -257,92 +222,6 @@ export abstract class AutoForm<P = {}> extends React.Component<P, void> {
         } else {
             return this.renderContent();
         }
-    }
-
-    /**
-     * Crée un champ standard en lecture seule.
-     * @param field La définition de champ.
-     * @param options Les options du champ.
-     */
-    displayFor<
-        T,
-        DCProps extends BaseDisplayProps = DisplayProps,
-        LCProps extends BaseLabelProps = BaseLabelProps
-    >(
-        field: EntityField<T, Domain<{}, DCProps, LCProps>>,
-        options: Partial<FieldOptions<T, {}, DCProps, LCProps, {}, string, string>> = {}
-    ) {
-        return displayFor(field, options);
-    }
-
-    /**
-     * Crée un champ standard.
-     * @param field La définition de champ.
-     * @param options Les options du champ.
-     */
-    fieldFor<
-        T,
-        ICProps extends BaseInputProps = InputProps,
-        DCProps extends BaseDisplayProps = DisplayProps,
-        LCProps extends BaseLabelProps = BaseLabelProps
-    >(
-        field: EntityField<T, Domain<ICProps, DCProps, LCProps>>,
-        options: Partial<FieldOptions<T, ICProps, DCProps, LCProps, {}, string, string>> = {}
-    ) {
-        return fieldFor(field, this.setFieldOptions(options));
-    }
-
-    /**
-     * Crée un champ avec résolution de référence.
-     * @param field La définition de champ.
-     * @param listName Le nom de la liste de référence.
-     * @param options Les options du champ.
-     */
-    selectFor<
-        T,
-        ICProps extends BaseInputProps = Partial<SelectProps>,
-        DCProps extends BaseDisplayProps = DisplayProps,
-        LCProps extends BaseLabelProps = BaseLabelProps,
-        R extends RefValues<T, ValueKey, LabelKey> = any,
-        ValueKey extends string = "code",
-        LabelKey extends string = "label"
-    >(
-        field: EntityField<T, Domain<{}, DCProps, LCProps>>,
-        values: R[],
-        options: Partial<FieldOptions<T, ICProps, DCProps, LCProps, R, ValueKey, LabelKey>> & {
-            SelectComponent?: ReactComponent<ICProps>
-        } = {}
-    ) {
-        return selectFor(field, values, this.setFieldOptions(options));
-    }
-
-    /**
-     * Récupère le texte correspondant à un champ.
-     * @param field La définition de champ.
-     * @param options Les options du champ.
-     */
-    stringFor<
-        T,
-        R extends RefValues<T, ValueKey, LabelKey>,
-        ValueKey extends string = "code",
-        LabelKey extends string = "label"
-    >(
-        field: EntityField<T>,
-        options: ReferenceOptions<T, R, ValueKey, LabelKey> = {}
-    ) {
-        return stringFor(field, options);
-    }
-
-    /**
-     * Ajoute les options aux champs pour les lier au formulaire (`ref`, `error`, `isEdit`).
-     * @param field La définition du champ.
-     * @param options Les options du champ.
-     */
-    private setFieldOptions<T>(options: Partial<FieldOptions<T, {}, {}, {}, {}, string, string>>) {
-        if (options.isEdit === undefined) {
-            options.isEdit = this.isEdit;
-        }
-        return options;
     }
 }
 
