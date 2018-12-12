@@ -13,9 +13,8 @@ import {ScrollspyContext} from "../scrollspy-container";
 import {PanelButtons, PanelButtonsProps} from "./buttons";
 export {PanelButtons};
 
-import * as styles from "../__style__/panel.css";
-export type PanelStyle = Partial<typeof styles>;
-const Theme = themr("panel", styles);
+import styles, {PanelStyle, PanelStyleModifiers} from "../__style__/panel.css";
+const Theme = themr<PanelStyle, PanelStyleModifiers>("panel", styles);
 
 /** Props du panel. */
 export interface PanelProps extends PanelButtonsProps {
@@ -103,8 +102,8 @@ export class Panel extends React.Component<PanelProps> {
             hideProgressBar
         } = this.props;
 
-        const buttons = (theme: PanelStyle) => (
-            <div className={theme.actions}>
+        const buttons = (theme: PanelStyleModifiers) => (
+            <div className={theme.actions()}>
                 <Buttons
                     editing={editing}
                     i18nPrefix={i18nPrefix}
@@ -122,12 +121,12 @@ export class Panel extends React.Component<PanelProps> {
         return (
             <Theme theme={this.props.theme}>
                 {theme => (
-                    <div className={`${theme.panel} ${loading ? theme.busy : ""} ${editing ? theme.edit : ""}`}>
+                    <div className={theme({busy: loading, edit: editing})}>
                         {!hideProgressBar && loading ? (
-                            <ProgressBar mode="indeterminate" theme={{indeterminate: theme.progress}} />
+                            <ProgressBar mode="indeterminate" theme={{indeterminate: theme.progress()}} />
                         ) : null}
                         {title || areButtonsTop ? (
-                            <div className={`${theme.title} ${theme.top}`}>
+                            <div className={theme.title({top: true})}>
                                 {title ? (
                                     <h3>
                                         <span data-spy-title>{i18next.t(title)}</span>
@@ -142,10 +141,8 @@ export class Panel extends React.Component<PanelProps> {
                                 {areButtonsTop ? buttons(theme) : null}
                             </div>
                         ) : null}
-                        <div className={theme.content}>{children}</div>
-                        {areButtonsDown ? (
-                            <div className={`${theme.title} ${theme.bottom}`}>{buttons(theme)}</div>
-                        ) : null}
+                        <div className={theme.content()}>{children}</div>
+                        {areButtonsDown ? <div className={theme.title({bottom: true})}>{buttons(theme)}</div> : null}
                     </div>
                 )}
             </Theme>

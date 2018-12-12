@@ -1,12 +1,6 @@
 @import "../../style/panel.css";
 
-.progress {
-    position: absolute;
-    height: 3px;
-    z-index: var(--z-index-high);
-}
-
-.panel {
+._ {
     position: relative;
     width: 100%;
     margin-bottom: 30px;
@@ -15,21 +9,17 @@
     border-radius: 2px;
 }
 
+.progress {
+    position: absolute;
+    height: 3px;
+    z-index: var(--z-index-high);
+}
+
 .title {
     min-height: 36px;
     padding: 8px 16px;
     display: flex;
     align-items: center;
-
-    &.top {
-        border-bottom: var(--panel-title-border);
-        justify-content: space-between;
-    }
-
-    &.bottom {
-        border-top: var(--panel-title-border);
-        justify-content: flex-end;
-    }
 
     & h3 {
         margin: 0;
@@ -45,12 +35,22 @@
     }
 }
 
+.title--top {
+    border-bottom: var(--panel-title-border);
+    justify-content: space-between;
+}
+
+.title--bottom {
+    border-top: var(--panel-title-border);
+    justify-content: flex-end;
+}
+
 .actions {
     display: none;
 }
 
-.edit,
-.panel:hover {
+._--edit,
+._:hover {
     & > .title > .actions {
         display: block;
     }
@@ -63,7 +63,7 @@
     position: relative;
 }
 
-.busy .content::after {
+._--busy .content::after {
     content: "";
     position: absolute;
     top: 0;
